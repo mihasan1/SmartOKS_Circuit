@@ -408,6 +408,7 @@
   });
 
   window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && helpOpen()) { closeHelp(); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === 'Escape') { state.placing = null; state.wiring = null; setPaletteActive(null); render(); }
     else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected != null) {
@@ -510,7 +511,8 @@
   function appendRotDel(body) {
     const btns = document.createElement('div');
     btns.style.cssText = 'margin-top:12px;display:flex;gap:6px';
-    btns.innerHTML = `<button id="pRot">${t('ui.rotate')}</button><button id="pDel">${t('ui.delete')}</button>`;
+    btns.innerHTML = `<button id="pRot" class="btn">${window.iconHTML('rotate')}<span>${t('ui.rotate')}</span></button>`
+      + `<button id="pDel" class="btn">${window.iconHTML('trash')}<span>${t('ui.delete')}</span></button>`;
     body.appendChild(btns);
     $('#pRot').onclick = rotateSelected;
     $('#pDel').onclick = () => { deleteComponent(state.selected); updateDock(); resimIfRunning(); renderProps(); render(); };
@@ -540,11 +542,13 @@
       fr.innerHTML = `<label>${t('gen.freq')}</label><input type="number" id="genFreq" min="0.05" step="0.05" value="${c.props.freq || 2}"/>`;
       body.appendChild(fr);
       fr.querySelector('#genFreq').onchange = (e) => { c.props.freq = Math.max(0.05, +e.target.value); };
-      const rb = document.createElement('button'); rb.textContent = t('gen.restart'); rb.style.marginBottom = '10px';
+      const rb = document.createElement('button'); rb.className = 'btn'; rb.style.marginBottom = '10px';
+      rb.innerHTML = window.iconHTML('restart') + `<span>${t('gen.restart')}</span>`;
       rb.onclick = () => { if (state.running) { stopClock(); resetInstruments(); startClock(); } };
       body.appendChild(rb);
     } else {
-      const sb = document.createElement('button'); sb.textContent = t('gen.stepBtn'); sb.className = 'primary'; sb.style.marginBottom = '10px';
+      const sb = document.createElement('button'); sb.className = 'btn btn-primary'; sb.style.marginBottom = '10px';
+      sb.innerHTML = window.iconHTML('step') + `<span>${t('gen.stepBtn')}</span>`;
       sb.onclick = () => {
         const n = (c.props.patterns || []).length || 1;
         c._idx = ((c._idx || 0) + 1) % n;
@@ -597,7 +601,7 @@
           renderPatternTable(); updateCurLine();
         };
         row.appendChild(hex);
-        const del = document.createElement('button'); del.className = 'gen-del'; del.textContent = '×';
+        const del = document.createElement('button'); del.className = 'gen-del'; del.innerHTML = window.iconHTML('close');
         del.onclick = () => { c.props.patterns.splice(ri, 1); if (!c.props.patterns.length) c.props.patterns = [0]; renderPatternTable(); updateCurLine(); };
         row.appendChild(del);
         wrap.appendChild(row);
@@ -607,7 +611,7 @@
 
     // add / clear
     const ctrl = document.createElement('div'); ctrl.style.cssText = 'display:flex;gap:6px;margin:8px 0';
-    ctrl.innerHTML = `<button id="genAdd">${t('gen.addRow')}</button><button id="genClr">${t('gen.clearRows')}</button>`;
+    ctrl.innerHTML = `<button id="genAdd" class="btn">${t('gen.addRow')}</button><button id="genClr" class="btn">${t('gen.clearRows')}</button>`;
     body.appendChild(ctrl);
     ctrl.querySelector('#genAdd').onclick = () => { c.props.patterns.push(0); renderPatternTable(); updateCurLine(); };
     ctrl.querySelector('#genClr').onclick = () => { c.props.patterns = [0]; c._idx = 0; renderPatternTable(); updateCurLine(); };
@@ -616,7 +620,7 @@
     const imp = document.createElement('div'); imp.className = 'prop-row';
     imp.innerHTML = `<label>${t('gen.import')}</label>
       <textarea id="genImp" rows="4" style="width:100%;font-family:monospace;font-size:11px"></textarea>
-      <button id="genImpBtn" style="margin-top:6px">${t('gen.importBtn')}</button>`;
+      <button id="genImpBtn" class="btn" style="margin-top:6px">${t('gen.importBtn')}</button>`;
     body.appendChild(imp);
     imp.querySelector('#genImpBtn').onclick = () => {
       const lines = imp.querySelector('#genImp').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
@@ -708,6 +712,14 @@
   }
   $('#themeToggle').onclick = () => applyTheme(themeName === 'light' ? 'dark' : 'light');
 
+  // help modal
+  function openHelp() { $('#helpBody').innerHTML = t('help.html'); $('#helpModal').classList.remove('hidden'); }
+  function closeHelp() { $('#helpModal').classList.add('hidden'); }
+  function helpOpen() { return !$('#helpModal').classList.contains('hidden'); }
+  $('#btnHelp').onclick = openHelp;
+  $('#helpClose').onclick = closeHelp;
+  $('#helpModal').querySelector('.modal-backdrop').onclick = closeHelp;
+
   // icon-button tooltips (localized)
   function refreshTitles() {
     $('#btnRotate').title = t('ui.tip_rotate');
@@ -715,7 +727,10 @@
     $('#btnSave').title = t('ui.tip_save');
     $('#btnLoad').title = t('ui.tip_load');
     $('#btnClear').title = t('ui.tip_clear');
+    $('#btnHelp').title = t('ui.tip_help');
     $('#themeToggle').title = t('ui.theme');
+    document.querySelector('#helpModal h2').textContent = t('help.title');
+    if (helpOpen()) $('#helpBody').innerHTML = t('help.html');
   }
 
   // analyzer dock controls

@@ -14,14 +14,14 @@
     <!-- ===================== SIDEBAR ===================== -->
     <aside class="sidebar">
       <div class="brand">
-        <span class="brand-logo">✦</span>
+        <span class="brand-logo" data-icon="cpu"></span>
         <span class="brand-name">SmartOKS</span>
       </div>
 
       <nav id="palette" class="palette"></nav>
 
       <div class="support-card">
-        <div class="support-illu">🧑‍🔧</div>
+        <span class="support-illu" data-icon="support"></span>
         <div class="support-text">
           <b data-i18n="ui.needHelp">Потрібна допомога?</b>
           <span data-i18n="ui.contactFree">звертайтеся вільно</span>
@@ -40,27 +40,32 @@
         </div>
 
         <div class="topbar-actions">
-          <button id="btnRun" class="btn btn-primary" data-i18n="ui.run">Запустити</button>
-          <button id="btnStop" class="btn" disabled data-i18n="ui.stop">Стоп</button>
+          <button id="btnRun" class="btn btn-primary" data-icon="play"><span data-i18n="ui.run">Запустити</span></button>
+          <button id="btnStop" class="btn" disabled data-icon="stop"><span data-i18n="ui.stop">Стоп</span></button>
           <span class="divider"></span>
-          <button id="btnRotate" class="btn btn-icon" title="Rotate">⟳</button>
-          <button id="btnDelete" class="btn btn-icon" title="Delete">🗑</button>
-          <button id="btnSave" class="btn btn-icon" title="Save">💾</button>
-          <button id="btnLoad" class="btn btn-icon" title="Load">📂</button>
-          <button id="btnClear" class="btn btn-icon" title="Clear">✖</button>
+          <button id="btnRotate" class="btn btn-icon" data-icon="rotate" title="Rotate"></button>
+          <button id="btnDelete" class="btn btn-icon" data-icon="trash" title="Delete"></button>
+          <button id="btnSave" class="btn btn-icon" data-icon="save" title="Save"></button>
+          <button id="btnLoad" class="btn btn-icon" data-icon="folder" title="Load"></button>
+          <button id="btnClear" class="btn btn-icon" data-icon="clear" title="Clear"></button>
           <input type="file" id="fileInput" accept="application/json" hidden />
           <span class="divider"></span>
 
+          <button id="btnHelp" class="btn btn-icon" data-icon="help" title="Help"></button>
+
           <button id="themeToggle" class="theme-toggle" title="Theme" aria-label="Toggle theme">
-            <span class="tt-icon tt-sun">☀</span>
+            <span class="tt-icon tt-sun" data-icon="sun"></span>
             <span class="tt-knob"></span>
-            <span class="tt-icon tt-moon">🌙</span>
+            <span class="tt-icon tt-moon" data-icon="moon"></span>
           </button>
 
-          <select id="langSel" class="lang-sel" title="Language / Мова">
-            <option value="uk">🇺🇦 UA</option>
-            <option value="en">🇬🇧 EN</option>
-          </select>
+          <span class="lang-wrap">
+            <span class="lang-globe" data-icon="globe"></span>
+            <select id="langSel" class="lang-sel" title="Language / Мова">
+              <option value="uk">Українська</option>
+              <option value="en">English</option>
+            </select>
+          </span>
 
           <div class="user-chip">
             <span class="avatar">SO</span>
@@ -89,13 +94,26 @@
             <input type="number" id="laWindow" min="1" max="60" step="1" value="8" />
           </span>
           <button id="laClear" class="btn" data-i18n="la.clear">Очистити запис</button>
-          <button id="laClose" class="btn btn-icon">✕</button>
+          <button id="laClose" class="btn btn-icon" data-icon="close"></button>
         </div>
         <canvas id="laCanvas"></canvas>
       </section>
     </div>
   </div>
 
+  <!-- ===================== HELP MODAL ===================== -->
+  <div id="helpModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 data-i18n="help.title">Довідка</h2>
+        <button id="helpClose" class="btn btn-icon" data-icon="close"></button>
+      </div>
+      <div id="helpBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="icons.js"></script>
   <script src="i18n.js"></script>
   <script src="engine.js"></script>
   <script src="components.js"></script>
