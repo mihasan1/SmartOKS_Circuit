@@ -1,0 +1,19 @@
+{
+  "name": "smartoks-circuit",
+  "version": "1.0.0",
+  "description": "Electronics Workbench analog/digital circuit simulator (Node.js)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "circuit",
+    "simulator",
+    "electronics",
+    "workbench",
+    "spice",
+    "logic-gates"
+  ],
+  "author": "",
+  "license": "MIT"
+}

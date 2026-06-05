@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartOKS Circuit — Electronics Workbench</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand">⚡ SmartOKS Circuit</div>
+    <div class="tools">
+      <button id="btnRun" class="primary" data-i18n="ui.run">Запустити</button>
+      <button id="btnStop" disabled data-i18n="ui.stop">Стоп</button>
+      <span class="sep"></span>
+      <button id="btnRotate" data-i18n="ui.rotate">Поворот</button>
+      <button id="btnDelete" data-i18n="ui.delete">Видалити</button>
+      <span class="sep"></span>
+      <button id="btnSave" data-i18n="ui.save">Зберегти</button>
+      <button id="btnLoad" data-i18n="ui.load">Завантажити</button>
+      <button id="btnClear" data-i18n="ui.clear">Очистити</button>
+      <input type="file" id="fileInput" accept="application/json" hidden />
+      <span class="sep"></span>
+      <select id="langSel" title="Language / Мова">
+        <option value="uk">🇺🇦 Українська</option>
+        <option value="en">🇬🇧 English</option>
+      </select>
+    </div>
+    <div id="status" class="status">Готово</div>
+  </header>
+
+  <div id="layout">
+    <aside id="palette"></aside>
+    <main id="stage">
+      <canvas id="canvas"></canvas>
+      <div id="hint" data-i18n="ui.hint"></div>
+    </main>
+    <aside id="props">
+      <h3 data-i18n="ui.props_title">Властивості</h3>
+      <div id="propsBody"><p class="muted" data-i18n="ui.nothing_selected">Нічого не вибрано</p></div>
+    </aside>
+  </div>
+
+  <section id="ladock" class="hidden">
+    <div class="ladock-head">
+      <span class="la-title" data-i18n="la.title">Логічний аналізатор</span>
+      <span class="la-win">
+        <label data-i18n="la.window">Вікно (с)</label>
+        <input type="number" id="laWindow" min="1" max="60" step="1" value="8" />
+      </span>
+      <button id="laClear" data-i18n="la.clear">Очистити запис</button>
+      <button id="laClose">✕</button>
+    </div>
+    <canvas id="laCanvas"></canvas>
+  </section>
+
+  <script src="i18n.js"></script>
+  <script src="engine.js"></script>
+  <script src="components.js"></script>
+  <script src="netlist.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>
