@@ -9,6 +9,19 @@
   const t = (k, v) => I18n.t(k, v);
   const GRID = 20;
 
+  // ---------- theme (canvas colors per theme) ----------
+  const THEMES = {
+    light: { canvasBg: '#f7f8fb', grid: '#dfe4ec', stroke: '#46506a', label: '#95a0b3',
+             wire: '#aab2c2', sel: '#3b6ef5', pin: '#f0883e', pinHover: '#22c55e',
+             laBg: '#ffffff', laGrid: '#eceff4', laWave: '#22c55e', laLabel: '#95a0b3', laMuted: '#aab2c2' },
+    dark:  { canvasBg: '#14181f', grid: '#232a36', stroke: '#cdd9e5', label: '#8b95a5',
+             wire: '#6e7681', sel: '#3b6ef5', pin: '#f0883e', pinHover: '#39d353',
+             laBg: '#14181f', laGrid: '#232a36', laWave: '#39d353', laLabel: '#8b95a5', laMuted: '#566072' }
+  };
+  let themeName = localStorage.getItem('smartoks-theme') || 'light';
+  if (!THEMES[themeName]) themeName = 'light';
+  let TC = THEMES[themeName];
+
   // ---------- state ----------
   const state = {
     components: [], wires: [], selected: null, placing: null,
@@ -184,18 +197,19 @@
     setTimeout(() => { resize(); resizeLaCanvas(); drawAnalyzers(); }, 0);
   }
   function resizeLaCanvas() {
-    const cv = $('#laCanvas'); const r = cv.parentElement.getBoundingClientRect();
-    const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height - 38));
+    const cv = $('#laCanvas');
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
   }
   function drawAnalyzers() {
     const dock = $('#ladock'); if (dock.classList.contains('hidden')) return;
     const cv = $('#laCanvas'); const x = cv.getContext('2d');
     const W = cv.width, H = cv.height;
-    x.clearRect(0, 0, W, H); x.fillStyle = '#0b0e14'; x.fillRect(0, 0, W, H);
+    x.clearRect(0, 0, W, H); x.fillStyle = TC.laBg; x.fillRect(0, 0, W, H);
     const c = currentAnalyzer();
     if (!c || !c._samples || c._samples.length < 2) {
-      x.fillStyle = '#6e7681'; x.font = '12px monospace'; x.textAlign = 'left';
+      x.fillStyle = TC.laMuted; x.font = '12px Inter, monospace'; x.textAlign = 'left';
       x.fillText(t('la.nodata'), 12, 22); return;
     }
     const win = Math.max(1, +c.props.window || 8);
@@ -204,11 +218,11 @@
     const sx = (tt) => labelW + ((tt - tStart) / win) * plotW;
     for (let ch = 0; ch < rows; ch++) {
       const y0 = 4 + ch * rowH, hi = y0 + rowH * 0.2, lo = y0 + rowH * 0.8;
-      x.fillStyle = '#7a8699'; x.font = '9px monospace'; x.textAlign = 'left';
+      x.fillStyle = TC.laLabel; x.font = '9px monospace'; x.textAlign = 'left';
       x.fillText('D' + ch, 4, y0 + rowH * 0.64);
-      x.strokeStyle = '#13192400'; x.strokeStyle = '#161b22';
+      x.strokeStyle = TC.laGrid;
       x.beginPath(); x.moveTo(labelW, y0 + rowH); x.lineTo(W, y0 + rowH); x.stroke();
-      x.strokeStyle = '#39d353'; x.lineWidth = 1.4; x.beginPath();
+      x.strokeStyle = TC.laWave; x.lineWidth = 1.4; x.beginPath();
       let started = false, prevY = null;
       for (let i = 0; i < c._samples.length; i++) {
         const s = c._samples[i]; if (s.t < tStart) continue;
@@ -250,8 +264,8 @@
   function render() {
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#0b0e14'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#1a2130';
+    ctx.fillStyle = TC.canvasBg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = TC.grid;
     for (let x = 0; x < W; x += GRID) for (let y = 0; y < H; y += GRID) ctx.fillRect(x, y, 1, 1);
 
     // wires
@@ -260,7 +274,7 @@
       const ca = compById(w.a.comp), cb = compById(w.b.comp);
       if (!ca || !cb) continue;
       const a = absPin(ca, w.a.pin), b = absPin(cb, w.b.pin);
-      let col = '#6e7681';
+      let col = TC.wire;
       if (state.running) { const vc = voltColor(nodeVoltage(ca, w.a.pin)); if (vc) col = vc; }
       ctx.strokeStyle = col;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
@@ -277,20 +291,20 @@
       const tt = TYPES[c.type];
       ctx.save();
       ctx.translate(c.x, c.y); ctx.rotate(c.rot * Math.PI / 180);
-      ctx.strokeStyle = '#cdd9e5'; ctx.fillStyle = '#cdd9e5'; ctx.lineWidth = 2; ctx.font = '11px monospace';
+      ctx.strokeStyle = TC.stroke; ctx.fillStyle = TC.stroke; ctx.lineWidth = 2; ctx.font = '11px monospace';
       ctx.textAlign = 'start';
       tt.draw(ctx, c);
       ctx.restore();
 
       if (state.selected === c.id) {
         ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot * Math.PI / 180);
-        ctx.strokeStyle = '#2f81f7'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
+        ctx.strokeStyle = TC.sel; ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
         ctx.strokeRect(-tt.w / 2 - 3, -tt.h / 2 - 3, tt.w + 6, tt.h + 6);
         ctx.setLineDash([]); ctx.restore();
       }
 
       if (!tt.instrument) {
-        ctx.fillStyle = '#8b95a5'; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = TC.label; ctx.font = '10px monospace'; ctx.textAlign = 'center';
         const lbl = labelFor(c);
         if (lbl) ctx.fillText(lbl, c.x, c.y + tt.h / 2 + 13);
         ctx.textAlign = 'start';
@@ -301,7 +315,7 @@
       TYPES[c.type].pins.forEach((_, i) => {
         const p = absPin(c, i);
         const hov = nearPin(p, state.mouse);
-        ctx.fillStyle = hov ? '#39d353' : '#f0883e';
+        ctx.fillStyle = hov ? TC.pinHover : TC.pin;
         ctx.beginPath(); ctx.arc(p.x, p.y, hov ? 4.5 : 3, 0, 7); ctx.fill();
       });
     }
@@ -445,7 +459,7 @@
     c.translate(cv.width / 2, cv.height / 2);
     const s = Math.min(1, 40 / tt.w, 28 / tt.h);
     c.scale(s, s);
-    c.strokeStyle = '#cdd9e5'; c.fillStyle = '#cdd9e5'; c.lineWidth = 2; c.font = '11px monospace';
+    c.strokeStyle = TC.stroke; c.fillStyle = TC.stroke; c.lineWidth = 2; c.font = '11px monospace';
     c.textAlign = 'start';
     try { tt.draw(c, { props: tt.props || {}, _on: false, _idx: 0 }); } catch (e) {}
   }
@@ -630,7 +644,7 @@
     if (state.running && c._levels) {
       const ro = document.createElement('div'); ro.className = 'readout';
       let h = '';
-      for (let i = NCH - 1; i >= 0; i--) h += `D${i}:<b style="color:${c._levels[i] ? '#39d353' : '#6e7681'}">${c._levels[i] ? 1 : 0}</b> `;
+      for (let i = NCH - 1; i >= 0; i--) h += `D${i}:<b style="color:${c._levels[i] ? 'var(--green)' : 'var(--muted)'}">${c._levels[i] ? 1 : 0}</b> `;
       ro.innerHTML = h; body.appendChild(ro);
     }
   }
@@ -681,7 +695,28 @@
   // language
   $('#langSel').value = I18n.lang;
   $('#langSel').onchange = (e) => I18n.set(e.target.value);
-  I18n.onChange(() => { buildPalette(); renderProps(); render(); statusFromSim(); });
+  I18n.onChange(() => { buildPalette(); renderProps(); render(); statusFromSim(); refreshTitles(); });
+
+  // theme
+  function applyTheme(name) {
+    themeName = THEMES[name] ? name : 'light';
+    TC = THEMES[themeName];
+    document.documentElement.setAttribute('data-theme', themeName);
+    localStorage.setItem('smartoks-theme', themeName);
+    buildPalette();          // redraw mini previews with new stroke color
+    render(); drawAnalyzers();
+  }
+  $('#themeToggle').onclick = () => applyTheme(themeName === 'light' ? 'dark' : 'light');
+
+  // icon-button tooltips (localized)
+  function refreshTitles() {
+    $('#btnRotate').title = t('ui.tip_rotate');
+    $('#btnDelete').title = t('ui.tip_delete');
+    $('#btnSave').title = t('ui.tip_save');
+    $('#btnLoad').title = t('ui.tip_load');
+    $('#btnClear').title = t('ui.tip_clear');
+    $('#themeToggle').title = t('ui.theme');
+  }
 
   // analyzer dock controls
   $('#laClose').onclick = () => $('#ladock').classList.add('hidden');
@@ -712,6 +747,8 @@
   // INIT
   // ===================================================================
   I18n.applyStatic();
+  document.documentElement.setAttribute('data-theme', themeName);
+  refreshTitles();
   buildPalette();
   resize();
   loadAutosave();

@@ -18,7 +18,10 @@
         confirmClear: 'Clear the whole canvas?',
         fileError: 'File error: {msg}',
         props_title: 'Properties', nothing_selected: 'Nothing selected',
-        hint: "Pick a part on the left → click the canvas to place it. Click a pin (•) to start a wire."
+        hint: "Pick a part on the left → click the canvas to place it. Click a pin (•) to start a wire.",
+        appTitle: 'Circuit Lab', needHelp: 'Need help?', contactFree: 'feel free to contact',
+        getSupport: 'Get support', theme: 'Theme',
+        tip_rotate: 'Rotate (R)', tip_delete: 'Delete (Del)', tip_save: 'Save', tip_load: 'Load', tip_clear: 'Clear'
       },
       cat: {
         Sources: 'Sources', Passive: 'Passive', Indicators: 'Indicators',
@@ -67,7 +70,10 @@
         confirmClear: 'Очистити все полотно?',
         fileError: 'Помилка файлу: {msg}',
         props_title: 'Властивості', nothing_selected: 'Нічого не вибрано',
-        hint: "Оберіть елемент зліва → клікніть на полотні щоб розмістити. Клік по виводу (•) — почати з'єднання."
+        hint: "Оберіть елемент зліва → клікніть на полотні щоб розмістити. Клік по виводу (•) — почати з'єднання.",
+        appTitle: 'Лабораторія схем', needHelp: 'Потрібна допомога?', contactFree: 'звертайтеся вільно',
+        getSupport: 'Підтримка', theme: 'Тема',
+        tip_rotate: 'Поворот (R)', tip_delete: 'Видалити (Del)', tip_save: 'Зберегти', tip_load: 'Завантажити', tip_clear: 'Очистити'
       },
       cat: {
         Sources: 'Джерела', Passive: 'Пасивні', Indicators: 'Індикатори',

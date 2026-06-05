@@ -1,58 +1,100 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmartOKS Circuit — Electronics Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header id="topbar">
-    <div class="brand">⚡ SmartOKS Circuit</div>
-    <div class="tools">
-      <button id="btnRun" class="primary" data-i18n="ui.run">Запустити</button>
-      <button id="btnStop" disabled data-i18n="ui.stop">Стоп</button>
-      <span class="sep"></span>
-      <button id="btnRotate" data-i18n="ui.rotate">Поворот</button>
-      <button id="btnDelete" data-i18n="ui.delete">Видалити</button>
-      <span class="sep"></span>
-      <button id="btnSave" data-i18n="ui.save">Зберегти</button>
-      <button id="btnLoad" data-i18n="ui.load">Завантажити</button>
-      <button id="btnClear" data-i18n="ui.clear">Очистити</button>
-      <input type="file" id="fileInput" accept="application/json" hidden />
-      <span class="sep"></span>
-      <select id="langSel" title="Language / Мова">
-        <option value="uk">🇺🇦 Українська</option>
-        <option value="en">🇬🇧 English</option>
-      </select>
-    </div>
-    <div id="status" class="status">Готово</div>
-  </header>
+  <div class="app">
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-logo">✦</span>
+        <span class="brand-name">SmartOKS</span>
+      </div>
 
-  <div id="layout">
-    <aside id="palette"></aside>
-    <main id="stage">
-      <canvas id="canvas"></canvas>
-      <div id="hint" data-i18n="ui.hint"></div>
-    </main>
-    <aside id="props">
-      <h3 data-i18n="ui.props_title">Властивості</h3>
-      <div id="propsBody"><p class="muted" data-i18n="ui.nothing_selected">Нічого не вибрано</p></div>
+      <nav id="palette" class="palette"></nav>
+
+      <div class="support-card">
+        <div class="support-illu">🧑‍🔧</div>
+        <div class="support-text">
+          <b data-i18n="ui.needHelp">Потрібна допомога?</b>
+          <span data-i18n="ui.contactFree">звертайтеся вільно</span>
+        </div>
+        <a id="supportBtn" class="support-btn" target="_blank" rel="noopener"
+           href="https://github.com/mihasan1/SmartOKS_Circuit" data-i18n="ui.getSupport">Підтримка</a>
+      </div>
     </aside>
-  </div>
 
-  <section id="ladock" class="hidden">
-    <div class="ladock-head">
-      <span class="la-title" data-i18n="la.title">Логічний аналізатор</span>
-      <span class="la-win">
-        <label data-i18n="la.window">Вікно (с)</label>
-        <input type="number" id="laWindow" min="1" max="60" step="1" value="8" />
-      </span>
-      <button id="laClear" data-i18n="la.clear">Очистити запис</button>
-      <button id="laClose">✕</button>
+    <!-- ===================== CONTENT ===================== -->
+    <div class="content">
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1 data-i18n="ui.appTitle">Лабораторія схем</h1>
+          <span id="status" class="status">Готово</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="btnRun" class="btn btn-primary" data-i18n="ui.run">Запустити</button>
+          <button id="btnStop" class="btn" disabled data-i18n="ui.stop">Стоп</button>
+          <span class="divider"></span>
+          <button id="btnRotate" class="btn btn-icon" title="Rotate">⟳</button>
+          <button id="btnDelete" class="btn btn-icon" title="Delete">🗑</button>
+          <button id="btnSave" class="btn btn-icon" title="Save">💾</button>
+          <button id="btnLoad" class="btn btn-icon" title="Load">📂</button>
+          <button id="btnClear" class="btn btn-icon" title="Clear">✖</button>
+          <input type="file" id="fileInput" accept="application/json" hidden />
+          <span class="divider"></span>
+
+          <button id="themeToggle" class="theme-toggle" title="Theme" aria-label="Toggle theme">
+            <span class="tt-icon tt-sun">☀</span>
+            <span class="tt-knob"></span>
+            <span class="tt-icon tt-moon">🌙</span>
+          </button>
+
+          <select id="langSel" class="lang-sel" title="Language / Мова">
+            <option value="uk">🇺🇦 UA</option>
+            <option value="en">🇬🇧 EN</option>
+          </select>
+
+          <div class="user-chip">
+            <span class="avatar">SO</span>
+            <span class="user-name">SmartOKS</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="canvas-card">
+          <canvas id="canvas"></canvas>
+          <div id="hint" class="hint" data-i18n="ui.hint"></div>
+        </section>
+
+        <aside id="props" class="props-card">
+          <h3 data-i18n="ui.props_title">Властивості</h3>
+          <div id="propsBody"><p class="muted" data-i18n="ui.nothing_selected">Нічого не вибрано</p></div>
+        </aside>
+      </main>
+
+      <section id="ladock" class="ladock hidden">
+        <div class="ladock-head">
+          <span class="la-title" data-i18n="la.title">Логічний аналізатор</span>
+          <span class="la-win">
+            <label data-i18n="la.window">Вікно (с)</label>
+            <input type="number" id="laWindow" min="1" max="60" step="1" value="8" />
+          </span>
+          <button id="laClear" class="btn" data-i18n="la.clear">Очистити запис</button>
+          <button id="laClose" class="btn btn-icon">✕</button>
+        </div>
+        <canvas id="laCanvas"></canvas>
+      </section>
     </div>
-    <canvas id="laCanvas"></canvas>
-  </section>
+  </div>
 
   <script src="i18n.js"></script>
   <script src="engine.js"></script>

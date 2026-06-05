@@ -5,3 +5,5 @@ npm-debug.log*
 *.log
 .env
 .claude/
+
+.vercel
