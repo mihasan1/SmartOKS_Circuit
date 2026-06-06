@@ -29,6 +29,12 @@
     mouse: { x: 0, y: 0 }
   };
 
+  // ---------- history / clipboard ----------
+  const history = { undo: [], redo: [] };
+  let lastSnapshot = '';     // JSON of the last committed state
+  let clipboard = null;      // { type, rot, props }
+  let spaceDown = false;     // hold Space to pan with left mouse
+
   const $ = (s) => document.querySelector(s);
   const canvas = $('#canvas');
   const ctx = canvas.getContext('2d');
@@ -138,7 +144,78 @@
     updateDock();
     render(); renderProps();
   }
-  function resimIfRunning() { if (state.running) { simulateOnce(); render(); } else render(); autosave(); }
+  function resimIfRunning() { if (state.running) { simulateOnce(); render(); } else render(); commit(); }
+
+  // ===================================================================
+  // HISTORY (undo/redo) + CLIPBOARD
+  // ===================================================================
+  function snapshotStr() { return JSON.stringify(serialize()); }
+  function resetHistory() { history.undo.length = 0; history.redo.length = 0; lastSnapshot = snapshotStr(); }
+  function commit() {
+    const snap = snapshotStr();
+    if (snap === lastSnapshot) { autosave(); return; }   // nothing structural changed
+    history.undo.push(lastSnapshot);
+    if (history.undo.length > 120) history.undo.shift();
+    history.redo.length = 0;
+    lastSnapshot = snap;
+    autosave();
+  }
+  function applySnapshot(jsonStr) {
+    const data = JSON.parse(jsonStr);
+    state.components = (data.components || []).map(c => ({ ...c, rot: c.rot || 0 }));
+    state.wires = data.wires || [];
+    state.idc = state.components.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+    if (state.selected != null && !compById(state.selected)) state.selected = null;
+    lastSnapshot = jsonStr;
+    updateDock();
+    if (state.running) { stopClock(); resetInstruments(); if (needsClock()) startClock(); else simulateOnce(); }
+    render(); renderProps(); autosave();
+  }
+  function undo() {
+    if (!history.undo.length) { setStatus(t('ui.nothingUndo')); return; }
+    history.redo.push(lastSnapshot);
+    applySnapshot(history.undo.pop());
+    setStatus(t('ui.undone'));
+  }
+  function redo() {
+    if (!history.redo.length) { setStatus(t('ui.nothingRedo')); return; }
+    history.undo.push(lastSnapshot);
+    applySnapshot(history.redo.pop());
+    setStatus(t('ui.redone'));
+  }
+
+  function copySel() {
+    if (state.selected == null) return;
+    const c = compById(state.selected);
+    clipboard = { type: c.type, rot: c.rot, props: JSON.parse(JSON.stringify(c.props)) };
+    setStatus(t('ui.copied', { name: I18n.comp(c.type) }));
+  }
+  function placeClone(clone, x, y) {
+    const c = addComponent(clone.type, x, y);
+    c.rot = clone.rot || 0;
+    c.props = JSON.parse(JSON.stringify(clone.props));
+    state.selected = c.id;
+    if (state.running && TYPES[c.type].instrument) { stopClock(); resetInstruments(); startClock(); }
+    updateDock(); resimIfRunning(); renderProps(); render();
+    return c;
+  }
+  function paste() {
+    if (!clipboard) return;
+    const at = state.mouse && isFinite(state.mouse.x) ? state.mouse : { x: 200, y: 200 };
+    placeClone(clipboard, at.x, at.y);
+    setStatus(t('ui.pasted', { name: I18n.comp(clipboard.type) }));
+  }
+  function cutSel() {
+    if (state.selected == null) return;
+    copySel();
+    deleteComponent(state.selected);
+    updateDock(); resimIfRunning(); renderProps(); render();
+  }
+  function duplicateSel() {
+    if (state.selected == null) return;
+    const c = compById(state.selected);
+    placeClone({ type: c.type, rot: c.rot, props: c.props }, c.x + GRID, c.y + GRID);
+  }
 
   // setInterval-driven (keeps running in background tabs; rAF is paused when hidden)
   function startClock() { stopClock(); clock.last = performance.now(); clock.raf = setInterval(loop, 33); }
@@ -377,7 +454,7 @@
   function getMouse(e) { const s = getScreen(e); return screenToWorld(s.x, s.y); }
 
   canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 1) {                       // middle button → pan
+    if (e.button === 1 || (e.button === 0 && spaceDown)) {   // middle / Space+left → pan
       e.preventDefault();
       const s = getScreen(e);
       state.pan = { sx: s.x, sy: s.y, ox: view.x, oy: view.y };
@@ -426,8 +503,8 @@
   });
 
   window.addEventListener('mouseup', () => {
-    if (state.pan) { state.pan = null; canvas.style.cursor = ''; return; }
-    if (state.drag) { if (state.drag.moved) autosave(); state.drag = null; }
+    if (state.pan) { state.pan = null; canvas.style.cursor = spaceDown ? 'grab' : ''; return; }
+    if (state.drag) { const moved = state.drag.moved; state.drag = null; if (moved) commit(); }
   });
 
   // wheel = zoom around the cursor
@@ -490,12 +567,32 @@
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && helpOpen()) { closeHelp(); return; }
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'Escape') { state.wiring = null; render(); }
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl) {
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+      else if (k === 'c') { e.preventDefault(); copySel(); }
+      else if (k === 'x') { e.preventDefault(); cutSel(); }
+      else if (k === 'v') { e.preventDefault(); paste(); }
+      else if (k === 'd') { e.preventDefault(); duplicateSel(); }
+      else if (k === 's') { e.preventDefault(); downloadCircuit(); }
+      else if (k === 'a') { e.preventDefault(); /* reserved */ }
+      return;
+    }
+
+    if (e.key === ' ') { if (!spaceDown) { spaceDown = true; canvas.style.cursor = 'grab'; } e.preventDefault(); }
+    else if (e.key === 'Escape') { state.wiring = null; render(); }
     else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected != null) {
       deleteComponent(state.selected); updateDock(); resimIfRunning(); renderProps(); render();
     } else if (e.key === 'r' || e.key === 'R') rotateSelected();
     else if (e.key === '0') fitView();
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === ' ') { spaceDown = false; if (!state.pan) canvas.style.cursor = ''; }
   });
 
   function rotateSelected() {
@@ -572,10 +669,12 @@
         row.querySelector('input').addEventListener('change', (e) => { c.props[key] = e.target.checked; resimIfRunning(); render(); });
       } else if (key === 'pos') {
         row.innerHTML = `<label>${propLabel(key)}: ${Math.round(val * 100)}%</label><input type="range" min="0" max="1" step="0.01" value="${val}"/>`;
-        row.querySelector('input').addEventListener('input', (e) => {
+        const inp = row.querySelector('input');
+        inp.addEventListener('input', (e) => {           // live (no history entry per tick)
           c.props.pos = +e.target.value; row.querySelector('label').textContent = propLabel(key) + ': ' + Math.round(c.props.pos * 100) + '%';
-          resimIfRunning(); render();
+          if (state.running) { simulateOnce(); } render();
         });
+        inp.addEventListener('change', () => commit());   // one history entry when released
       } else if (key === 'state') {
         row.innerHTML = `<div class="toggle"><input type="checkbox" ${val ? 'checked' : ''}/> <label>${propLabel('state_label')} (${val ? '1' : '0'})</label></div>`;
         row.querySelector('input').addEventListener('change', (e) => { c.props.state = e.target.checked ? 1 : 0; resimIfRunning(); render(); renderProps(); });
@@ -626,7 +725,7 @@
       const fr = document.createElement('div'); fr.className = 'prop-row';
       fr.innerHTML = `<label>${t('gen.freq')}</label><input type="number" id="genFreq" min="0.05" step="0.05" value="${c.props.freq || 2}"/>`;
       body.appendChild(fr);
-      fr.querySelector('#genFreq').onchange = (e) => { c.props.freq = Math.max(0.05, +e.target.value); };
+      fr.querySelector('#genFreq').onchange = (e) => { c.props.freq = Math.max(0.05, +e.target.value); commit(); };
       const rb = document.createElement('button'); rb.className = 'btn'; rb.style.marginBottom = '10px';
       rb.innerHTML = window.iconHTML('restart') + `<span>${t('gen.restart')}</span>`;
       rb.onclick = () => { if (state.running) { stopClock(); resetInstruments(); startClock(); } };
@@ -675,6 +774,7 @@
             c.props.patterns[ri] ^= (1 << b);
             renderPatternTable(); updateCurLine();
             if (state.running && !clock.raf) { simulateOnce(); render(); }
+            commit();
           };
           bits.appendChild(cell);
         }
@@ -683,11 +783,11 @@
         hex.onchange = () => {
           const n = parseInt(hex.value.replace(/[^0-9a-fA-F]/g, ''), 16);
           c.props.patterns[ri] = isNaN(n) ? 0 : (n & 0xFFFF);
-          renderPatternTable(); updateCurLine();
+          renderPatternTable(); updateCurLine(); commit();
         };
         row.appendChild(hex);
         const del = document.createElement('button'); del.className = 'gen-del'; del.innerHTML = window.iconHTML('close');
-        del.onclick = () => { c.props.patterns.splice(ri, 1); if (!c.props.patterns.length) c.props.patterns = [0]; renderPatternTable(); updateCurLine(); };
+        del.onclick = () => { c.props.patterns.splice(ri, 1); if (!c.props.patterns.length) c.props.patterns = [0]; renderPatternTable(); updateCurLine(); commit(); };
         row.appendChild(del);
         wrap.appendChild(row);
       });
@@ -698,8 +798,8 @@
     const ctrl = document.createElement('div'); ctrl.style.cssText = 'display:flex;gap:6px;margin:8px 0';
     ctrl.innerHTML = `<button id="genAdd" class="btn">${t('gen.addRow')}</button><button id="genClr" class="btn">${t('gen.clearRows')}</button>`;
     body.appendChild(ctrl);
-    ctrl.querySelector('#genAdd').onclick = () => { c.props.patterns.push(0); renderPatternTable(); updateCurLine(); };
-    ctrl.querySelector('#genClr').onclick = () => { c.props.patterns = [0]; c._idx = 0; renderPatternTable(); updateCurLine(); };
+    ctrl.querySelector('#genAdd').onclick = () => { c.props.patterns.push(0); renderPatternTable(); updateCurLine(); commit(); };
+    ctrl.querySelector('#genClr').onclick = () => { c.props.patterns = [0]; c._idx = 0; renderPatternTable(); updateCurLine(); commit(); };
 
     // bulk import
     const imp = document.createElement('div'); imp.className = 'prop-row';
@@ -716,7 +816,7 @@
         else v = parseInt(ln.replace(/^0[xX]/, ''), 16);            // hex
         if (!isNaN(v)) out.push(v & 0xFFFF);
       }
-      if (out.length) { c.props.patterns = out; c._idx = 0; renderPatternTable(); updateCurLine(); }
+      if (out.length) { c.props.patterns = out; c._idx = 0; renderPatternTable(); updateCurLine(); commit(); }
     };
   }
 
@@ -766,13 +866,14 @@
     if (!confirm(t('ui.confirmClear'))) return;
     state.components = []; state.wires = []; state.selected = null; state.idc = 1;
     if (state.running) stop(); else render();
-    updateDock(); renderProps(); autosave();
+    updateDock(); renderProps(); commit();
   };
-  $('#btnSave').onclick = () => {
+  function downloadCircuit() {
     const blob = new Blob([JSON.stringify(serialize(), null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'circuit.json'; a.click();
     URL.revokeObjectURL(a.href);
-  };
+  }
+  $('#btnSave').onclick = downloadCircuit;
   $('#btnLoad').onclick = () => $('#fileInput').click();
   $('#fileInput').onchange = (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -835,7 +936,7 @@
     state.wires = data.wires || [];
     state.idc = state.components.reduce((m, c) => Math.max(m, c.id), 0) + 1;
     state.selected = null;
-    render(); renderProps(); autosave();
+    render(); renderProps(); resetHistory(); autosave();
   }
 
   function autosave() { try { localStorage.setItem('smartoks-circuit', JSON.stringify(serialize())); } catch (e) {} }
@@ -854,6 +955,7 @@
   loadAutosave();
   if (state.components.length === 0) demo();
   render(); renderProps();
+  resetHistory();
   fitView();
 
   function demo() {

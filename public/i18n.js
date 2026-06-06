@@ -22,7 +22,9 @@
         appTitle: 'Circuit Lab', needHelp: 'Need help?', contactFree: 'feel free to contact',
         getSupport: 'Get support', theme: 'Theme',
         tip_rotate: 'Rotate (R)', tip_delete: 'Delete (Del)', tip_save: 'Save', tip_load: 'Load',
-        tip_clear: 'Clear', tip_help: 'Help & guide'
+        tip_clear: 'Clear', tip_help: 'Help & guide',
+        undone: 'Undone', redone: 'Redone', nothingUndo: 'Nothing to undo', nothingRedo: 'Nothing to redo',
+        copied: 'Copied: {name}', pasted: 'Pasted: {name}'
       },
       cat: {
         Sources: 'Sources', Passive: 'Passive', Indicators: 'Indicators',
@@ -88,6 +90,14 @@
           <p>16 inputs (D0…D15). Wire signals to it and press Run — it captures a live
           timing diagram in the bottom dock. Adjust the time window or clear the capture.</p>
 
+          <h4>Keyboard shortcuts</h4>
+          <ul>
+            <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Ctrl</kbd>+<kbd>Y</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>) redo</li>
+            <li><kbd>Ctrl</kbd>+<kbd>C</kbd> copy · <kbd>Ctrl</kbd>+<kbd>X</kbd> cut · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste · <kbd>Ctrl</kbd>+<kbd>D</kbd> duplicate</li>
+            <li><kbd>Ctrl</kbd>+<kbd>S</kbd> save to file · <kbd>R</kbd> rotate · <kbd>Del</kbd> delete · <kbd>0</kbd> reset view</li>
+            <li><kbd>Space</kbd>+drag to pan · scroll to zoom · <kbd>Esc</kbd> cancel</li>
+          </ul>
+
           <h4>General</h4>
           <ul>
             <li><b>Theme</b> — toggle light / dark in the top bar.</li>
@@ -116,7 +126,9 @@
         appTitle: 'Лабораторія схем', needHelp: 'Потрібна допомога?', contactFree: 'звертайтеся вільно',
         getSupport: 'Підтримка', theme: 'Тема',
         tip_rotate: 'Поворот (R)', tip_delete: 'Видалити (Del)', tip_save: 'Зберегти', tip_load: 'Завантажити',
-        tip_clear: 'Очистити', tip_help: 'Довідка та інструкція'
+        tip_clear: 'Очистити', tip_help: 'Довідка та інструкція',
+        undone: 'Скасовано', redone: 'Повернено', nothingUndo: 'Немає що скасувати', nothingRedo: 'Немає що повернути',
+        copied: 'Скопійовано: {name}', pasted: 'Вставлено: {name}'
       },
       cat: {
         Sources: 'Джерела', Passive: 'Пасивні', Indicators: 'Індикатори',
@@ -181,6 +193,14 @@
           <h4>Логічний аналізатор</h4>
           <p>16 входів (D0…D15). Підключіть сигнали й натисніть «Запустити» — він будує
           живу часову діаграму внизу. Можна змінити вікно часу або очистити запис.</p>
+
+          <h4>Гарячі клавіші</h4>
+          <ul>
+            <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> скасувати · <kbd>Ctrl</kbd>+<kbd>Y</kbd> (або <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>) повернути</li>
+            <li><kbd>Ctrl</kbd>+<kbd>C</kbd> копіювати · <kbd>Ctrl</kbd>+<kbd>X</kbd> вирізати · <kbd>Ctrl</kbd>+<kbd>V</kbd> вставити · <kbd>Ctrl</kbd>+<kbd>D</kbd> дублювати</li>
+            <li><kbd>Ctrl</kbd>+<kbd>S</kbd> зберегти у файл · <kbd>R</kbd> поворот · <kbd>Del</kbd> видалити · <kbd>0</kbd> скинути вид</li>
+            <li><kbd>Space</kbd>+перетягування — панорама · колесо — масштаб · <kbd>Esc</kbd> скасувати</li>
+          </ul>
 
           <h4>Загальне</h4>
           <ul>
