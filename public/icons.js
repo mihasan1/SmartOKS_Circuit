@@ -23,7 +23,10 @@
     step: '<polygon points="6 4 15 12 6 20" fill="currentColor" stroke="none"/><rect x="17" y="4.5" width="2.2" height="15" rx="1" fill="currentColor" stroke="none"/>',
     restart: '<path d="M22 4v6h-6"/><path d="M2 20v-6h6"/><path d="M3.4 9a8.5 8.5 0 0 1 14-3.2L22 10M2 14l4.6 4.2A8.5 8.5 0 0 0 20.6 15"/>',
     close: '<path d="M18 6L6 18M6 6l12 12"/>',
-    globe: '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5c2.6 2.5 4 5.9 4 9.5s-1.4 7-4 9.5c-2.6-2.5-4-5.9-4-9.5s1.4-7 4-9.5z"/>'
+    globe: '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5c2.6 2.5 4 5.9 4 9.5s-1.4 7-4 9.5c-2.6-2.5-4-5.9-4-9.5s1.4-7 4-9.5z"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    fit: '<path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/><path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/>'
   };
 
   function iconHTML(name, cls) {

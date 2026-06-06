@@ -33,6 +33,14 @@
   const canvas = $('#canvas');
   const ctx = canvas.getContext('2d');
 
+  // ---------- camera (infinite pan/zoom) ----------
+  // screen = world * scale + offset
+  const view = { scale: 1, x: 0, y: 0 };
+  const MIN_SCALE = 0.2, MAX_SCALE = 4;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function screenToWorld(sx, sy) { return { x: (sx - view.x) / view.scale, y: (sy - view.y) / view.scale }; }
+  function getScreen(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+
   // ---------- geometry ----------
   function rot(x, y, deg) {
     const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
@@ -62,9 +70,9 @@
     if (state.selected === id) state.selected = null;
   }
 
-  // ---------- hit testing ----------
+  // ---------- hit testing (mx,my in WORLD coords) ----------
   function pinAt(mx, my) {
-    let best = null, bd = 10;
+    let best = null, bd = 10 / view.scale;
     for (const c of state.components) {
       TYPES[c.type].pins.forEach((_, i) => {
         const p = absPin(c, i);
@@ -75,10 +83,11 @@
     return best;
   }
   function compAt(mx, my) {
+    const pad = 4 / view.scale;
     for (let k = state.components.length - 1; k >= 0; k--) {
       const c = state.components[k]; const tt = TYPES[c.type];
       const d = rot(mx - c.x, my - c.y, -c.rot);
-      if (Math.abs(d.x) <= tt.w / 2 + 4 && Math.abs(d.y) <= tt.h / 2 + 4) return c;
+      if (Math.abs(d.x) <= tt.w / 2 + pad && Math.abs(d.y) <= tt.h / 2 + pad) return c;
     }
     return null;
   }
@@ -263,10 +272,22 @@
 
   function render() {
     const W = canvas.width, H = canvas.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = TC.canvasBg; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = TC.grid;
-    for (let x = 0; x < W; x += GRID) for (let y = 0; y < H; y += GRID) ctx.fillRect(x, y, 1, 1);
+
+    // apply camera
+    ctx.setTransform(view.scale, 0, 0, view.scale, view.x, view.y);
+
+    // infinite grid (only when dots are far enough apart on screen)
+    if (GRID * view.scale >= 7) {
+      const tl = screenToWorld(0, 0), br = screenToWorld(W, H);
+      const x0 = Math.floor(tl.x / GRID) * GRID, y0 = Math.floor(tl.y / GRID) * GRID;
+      const ds = 1 / view.scale;
+      ctx.fillStyle = TC.grid;
+      for (let x = x0; x < br.x; x += GRID)
+        for (let y = y0; y < br.y; y += GRID) ctx.fillRect(x, y, ds, ds);
+    }
 
     // wires
     ctx.lineWidth = 2.5; ctx.lineCap = 'round';
@@ -311,16 +332,21 @@
       }
     }
 
+    const pr = 3 / view.scale, prh = 4.5 / view.scale;
     for (const c of state.components) {
       TYPES[c.type].pins.forEach((_, i) => {
         const p = absPin(c, i);
         const hov = nearPin(p, state.mouse);
         ctx.fillStyle = hov ? TC.pinHover : TC.pin;
-        ctx.beginPath(); ctx.arc(p.x, p.y, hov ? 4.5 : 3, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, hov ? prh : pr, 0, 7); ctx.fill();
       });
     }
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const zl = document.getElementById('zoomLabel');
+    if (zl) zl.textContent = Math.round(view.scale * 100) + '%';
   }
-  function nearPin(p, m) { return Math.hypot(p.x - m.x, p.y - m.y) < 8; }
+  function nearPin(p, m) { return Math.hypot(p.x - m.x, p.y - m.y) < 8 / view.scale; }
 
   function labelFor(c) {
     if (state.running) {
@@ -348,21 +374,18 @@
   // ===================================================================
   // MOUSE / KEYBOARD
   // ===================================================================
-  function getMouse(e) {
-    const r = canvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  }
+  function getMouse(e) { const s = getScreen(e); return screenToWorld(s.x, s.y); }
 
   canvas.addEventListener('mousedown', (e) => {
-    const m = getMouse(e); state.mouse = m;
-    if (state.placing) {
-      const c = addComponent(state.placing, m.x, m.y);
-      state.selected = c.id;
-      if (state.running && TYPES[c.type].instrument) { stopClock(); resetInstruments(); startClock(); }
-      updateDock();
-      resimIfRunning(); renderProps(); render();
+    if (e.button === 1) {                       // middle button → pan
+      e.preventDefault();
+      const s = getScreen(e);
+      state.pan = { sx: s.x, sy: s.y, ox: view.x, oy: view.y };
+      canvas.style.cursor = 'grabbing';
       return;
     }
+    if (e.button !== 0) return;
+    const m = getMouse(e); state.mouse = m;
     const pin = pinAt(m.x, m.y);
     if (pin) {
       if (state.wiring) {
@@ -385,7 +408,13 @@
     }
   });
 
-  canvas.addEventListener('mousemove', (e) => {
+  window.addEventListener('mousemove', (e) => {
+    if (state.pan) {
+      const s = getScreen(e);
+      view.x = state.pan.ox + (s.x - state.pan.sx);
+      view.y = state.pan.oy + (s.y - state.pan.sy);
+      render(); return;
+    }
     const m = getMouse(e); state.mouse = m;
     if (state.drag) {
       const c = compById(state.drag.id);
@@ -397,8 +426,60 @@
   });
 
   window.addEventListener('mouseup', () => {
+    if (state.pan) { state.pan = null; canvas.style.cursor = ''; return; }
     if (state.drag) { if (state.drag.moved) autosave(); state.drag = null; }
   });
+
+  // wheel = zoom around the cursor
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const s = getScreen(e); const before = screenToWorld(s.x, s.y);
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    view.scale = clamp(view.scale * factor, MIN_SCALE, MAX_SCALE);
+    view.x = s.x - before.x * view.scale;
+    view.y = s.y - before.y * view.scale;
+    render();
+  }, { passive: false });
+
+  // drag-and-drop placement from the palette
+  canvas.addEventListener('dragover', (e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; });
+  canvas.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const key = e.dataTransfer.getData('text/plain');
+    if (!key || !TYPES[key]) return;
+    const m = getMouse(e);
+    const c = addComponent(key, m.x, m.y); state.selected = c.id;
+    if (state.running && TYPES[c.type].instrument) { stopClock(); resetInstruments(); startClock(); }
+    updateDock(); resimIfRunning(); renderProps(); render();
+    setStatus(t('ui.ready'));
+  });
+
+  // zoom controls
+  function zoomBy(factor) {
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const before = screenToWorld(cx, cy);
+    view.scale = clamp(view.scale * factor, MIN_SCALE, MAX_SCALE);
+    view.x = cx - before.x * view.scale; view.y = cy - before.y * view.scale;
+    render();
+  }
+  function fitView() {
+    const W = canvas.width, H = canvas.height;
+    if (!state.components.length) { view.scale = 1; view.x = W / 2; view.y = H / 2; render(); return; }
+    let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+    for (const c of state.components) {
+      const tt = TYPES[c.type]; const hw = Math.max(tt.w, tt.h) / 2 + 24;
+      minx = Math.min(minx, c.x - hw); miny = Math.min(miny, c.y - hw);
+      maxx = Math.max(maxx, c.x + hw); maxy = Math.max(maxy, c.y + hw);
+    }
+    const sc = clamp(Math.min(W / (maxx - minx), H / (maxy - miny)) * 0.92, MIN_SCALE, 1);
+    view.scale = sc;
+    view.x = W / 2 - (minx + maxx) / 2 * sc;
+    view.y = H / 2 - (miny + maxy) / 2 * sc;
+    render();
+  }
+  $('#zoomIn').onclick = () => zoomBy(1.2);
+  $('#zoomOut').onclick = () => zoomBy(1 / 1.2);
+  $('#zoomReset').onclick = fitView;
 
   canvas.addEventListener('dblclick', (e) => {
     const m = getMouse(e); const c = compAt(m.x, m.y); if (!c) return;
@@ -410,10 +491,11 @@
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && helpOpen()) { closeHelp(); return; }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'Escape') { state.placing = null; state.wiring = null; setPaletteActive(null); render(); }
+    if (e.key === 'Escape') { state.wiring = null; render(); }
     else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected != null) {
       deleteComponent(state.selected); updateDock(); resimIfRunning(); renderProps(); render();
     } else if (e.key === 'r' || e.key === 'R') rotateSelected();
+    else if (e.key === '0') fitView();
   });
 
   function rotateSelected() {
@@ -437,16 +519,19 @@
         const tt = TYPES[key];
         const item = document.createElement('div');
         item.className = 'palette-item'; item.dataset.type = key;
-        if (state.placing === key) item.classList.add('active');
+        item.draggable = true;
+        item.title = I18n.comp(key);
         const mini = document.createElement('canvas'); mini.width = 46; mini.height = 34;
         drawMini(mini, tt);
         const span = document.createElement('span'); span.textContent = I18n.comp(key);
         item.appendChild(mini); item.appendChild(span);
-        item.addEventListener('click', () => {
-          state.placing = (state.placing === key) ? null : key;
-          setPaletteActive(state.placing ? item : null);
-          setStatus(state.placing ? t('ui.placing', { name: I18n.comp(key) }) : t('ui.ready'));
+        item.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', key);
+          e.dataTransfer.effectAllowed = 'copy';
+          item.classList.add('dragging');
+          try { e.dataTransfer.setDragImage(mini, 23, 17); } catch (_) {}
         });
+        item.addEventListener('dragend', () => item.classList.remove('dragging'));
         pal.appendChild(item);
       }
     }
@@ -769,6 +854,7 @@
   loadAutosave();
   if (state.components.length === 0) demo();
   render(); renderProps();
+  fitView();
 
   function demo() {
     const bat = addComponent('dc-source', 140, 200); bat.props.V = 9;
